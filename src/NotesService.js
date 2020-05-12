@@ -4,19 +4,19 @@ module.exports = {
     //get all
     return db('notes').select('*');
   },
-  getNote(knex) {
-    return knex('notes').select('*');
+  getNote(db) {
+    return db('notes').select('*');
   },
-  addNote(knex, newNote) {
-    return knex('notes').insert(newNote).returning('*').then(rows => rows[0]);
+  addNote(db, newNote) {
+    return db('notes').insert(newNote).returning('*').then(rows => rows[0]);
   },
-  getNoteById(knex, id) {
-    return knex('notes').select('*').where({ id }).first();
+  getNoteById(db, id) {
+    return db('notes').select('*').where({ id }).first();
   },
-  updateNote(knex, id, noteToUpdate) {
-    return knex('notes').where({ id }).update(noteToUpdate);
+  updateNote(db, id, noteToUpdate) {
+    return db('notes').where({ id }).update(noteToUpdate);
   },
-  deleteNote(knex, id) {
-    return knex('notes').where({ id }).delete();
+  deleteNote(db, id) {
+    return db('notes').where({ id }).delete();
   }
 };
