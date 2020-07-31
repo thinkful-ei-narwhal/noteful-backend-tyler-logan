@@ -1,10 +1,21 @@
-Requirements:
-Use the boilerplate to start a new application named bookmarks-server
+# Application
 
-Configure logging and API key handling middleware on the server
+Noteful - Backend
 
-Write a route handler for the endpoint GET /bookmarks that returns a list of bookmarks
+Live link: https://tyler-sharp-noteful.vercel.app
 
-Write a route handler for the endpoint GET /bookmarks/:id that returns a single bookmark with the given ID, return 404 Not Found if the ID is not valid
+Client Repo: https://github.com/thinkful-ei-narwhal/noteful-client-tyler.git
 
-Write a route handler for POST /bookmarks that accepts a JSON object representing a bookmark and adds it to the list of bookmarks after validation.
+Server Repo: https://github.com/thinkful-ei-narwhal/noteful-backend-tyler-logan.git
+
+# Developer
+
+Tyler Sharp
+
+# Features
+
+You can keep track of notes - add and delete them. It is a live application hooked up to a server.
+
+# Tech-Stack
+
+React, JS, Node, Express, PostgreSQL, Mocha, Chai, Supertest, Jest, Enzyme
