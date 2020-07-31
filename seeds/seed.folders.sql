@@ -1,10 +1,12 @@
-TRUNCATE folders;
+BEGIN;
 
-INSERT INTO folders (title)
+INSERT INTO folders (folder_name)
 VALUES 
- ('note 0'),
- ('note 1'),
- ('note 3'),
- ('note 2'),
- ('note 4')
+ ('Dogs'),
+ ('Kings'),
+ ('Cats'),
+ ('Monsters'),
+ ('Stars')
 ;
+
+COMMIT;

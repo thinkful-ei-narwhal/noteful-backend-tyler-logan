@@ -1,125 +1,80 @@
-const express = require('express');
-// const { v4: uuid } = require('uuid');
-const logger = require('./logger');
-const xss = require('xss');
-const NotesRouter = express.Router();
-const dataParser = express.json();
-const NotesService = require('./NotesService');
+const NotesService = require("./NotesService");
+const express = require("express");
+const xss = require("xss");
+const notesRouter = express.Router();
+const jsonParser = express.json();
 
-const sanitize = notes => ({
-  id: notes.id,
-  name: xss(notes.name),
-  description: xss(notes.description),
-  modified: xss(notes.modified),
-  folder_id: xss(notes.folder_id)
+const serialize = (note) => ({
+  id: note.id,
+  name: xss(note.name),
+  modified: note.modified,
+  folder_id: note.folder_id,
+  content: xss(note.content),
 });
-
-NotesRouter
-  .route('/')
+notesRouter
+  .route("/")
   .get((req, res, next) => {
-    NotesService.getAllNotes(req.app.get('db'))
-      .then(notes => res.json(notes.map(note => sanitize(note))));
-  })
-  .post(dataParser, (req, res, next) => {
-    // console.log('post route is here');
-
-    const { name } = req.body;
-    const { description } = req.body;
-    const { modified } = req.body;
-    // console.log(modified);
-    const { folder_id } = req.body;
-
-    const newNote = {
-      name,
-      description,
-      modified,
-      folder_id,
-    };
-
-    if (!name) {
-      logger.error('Failed post : User did not supply note name');
-      return res.status(400).json({ error: 'note name is required' });
-    }
-    NotesService.addNote(req.app.get('db'), newNote)
-      .then(note => res.status(201).json(sanitize(note)))
-      .catch(error => next(error));
-  });
-
-//get by ID
-NotesRouter
-  .route('/:id')
-  .all((req, res, next) => {
-    const { id } = req.params;
-    NotesService.getNoteById(req.app.get('db'), id)
-      .then(note => {
-        if (!note) {
-          logger.error(`Failed get note with id: ${id}`);
-          return res.status(404).json({
-            error: { message: 'note doesn\'t exist' }
-          });
-        }
-        logger.info(
-          `Successful get : note ${note.title} was retrieved with id: ${note.id}`
-        );
-        res.note = note;
-        next();
+    const db = req.app.get("db");
+    NotesService.getAllNotes(db)
+      .then((notes) => {
+        return res.json(notes.map((note) => serialize(note)));
       })
       .catch(next);
   })
+  .post(jsonParser, (req, res, next) => {
+    const { name, folder_id, content } = req.body;
+    const newNote = { name, folder_id, content };
+    for (const [key, value] of Object.entries(newNote)) {
+      if (value == null) {
+        return res
+          .status(400)
+          .json({ error: { message: `Missing ${key} in request` } });
+      }
+    }
+
+    NotesService.addNote(req.app.get("db"), newNote)
+      .then((note) => {
+        res.status(201).json(serialize(note));
+      })
+      .catch((err) => next(err));
+  });
+
+notesRouter
+  .route("/:id")
   .get((req, res, next) => {
-    res.json(sanitize(res.note));
+    const { id } = req.params;
+    const db = req.app.get("db");
+
+    NotesService.getNoteById(db, id)
+      .then((note) => {
+        return res.json(serialize(note));
+      })
+      .catch(next);
   })
   .delete((req, res, next) => {
     const { id } = req.params;
-
-    if (!id) {
-      logger.error(`Failed to delete note with id: ${id}`);
-      return res.status(404).json({ error: { message: 'note does not exist' } });
-    }
-    NotesService.deleteNote(req.app.get('db'), id)
-      .then(note => res.status(204).json(sanitize(note)).end())
-      .catch(error => next(error));
+    NotesService.deleteNote(req.app.get("db"), id)
+      .then(() => {
+        return res.status(204).end();
+      })
+      .catch(next);
   })
-
-  .patch(dataParser, (req, res, next) => {
-    const { name } = req.body;
-    const { id } = req.params;
-    const { description } = req.body;
+  .patch(jsonParser, (req, res, next) => {
+    const { name, folder_id, content } = req.body;
     const modified = new Date();
-    // console.log(modified);
-    const { folder_id } = req.body;
-    const noteToUpdate = {
-      name,
-      description,
-      modified,
-      folder_id,
-    };
-
-    if (!name) {
-      return res.status(400).json({
-        error: { message: 'Request body must contain \'title\'' }
-      });
-    }
-    if (!id) {
-      return res.status(400).json({
-        error: { message: 'Request body must contain \'id\'' }
-      });
-    }
-    if (!description) {
-      return res.status(400).json({
-        error: { message: 'Request body must contain \'description\'' }
-      });
-    }
-    if (!folder_id) {
-      return res.status(400).json({
-        error: { message: 'Request body must contain \'folder_id\'' }
-      });
+    const noteToUpdate = { name, modified, folder_id, content };
+    for (const [key, value] of Object.entries(noteToUpdate)) {
+      if (value == null) {
+        return res
+          .status(400)
+          .json({ error: { message: `Missing ${key} in request` } });
+      }
     }
 
-    NotesService.updateNote(req.app.get('db'), id, noteToUpdate)
-      .then(noteToUpdate => res.status(204).json(sanitize(noteToUpdate)).end())
-      // .then(console.log('FOLDER TO UPDATE:', noteToUpdate))
-      .catch(error => next(error));
+    NotesService.updateNote(req.app.get("db"), req.params.id, noteToUpdate)
+      .then((note) => {
+        res.status(204).json(serialize(note)).end();
+      })
+      .catch((err) => next(err));
   });
-
-module.exports = NotesRouter;
+module.exports = notesRouter;

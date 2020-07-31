@@ -1,10 +1,12 @@
-TRUNCATE notes;
+BEGIN;
 
-INSERT INTO notes (name, description, modified,folder_id)
+INSERT INTO notes (name, content, folder_id)
 VALUES 
- ( 'cats', 'blarg 0', TIMESTAMP WITH TIME ZONE '2004-10-19 10:23:54+02', 1),
- ( 'dogs', 'blarg 1', TIMESTAMP WITH TIME ZONE '2004-10-19 10:23:54+02', 2),
- ( 'lizards', 'blarg 3', TIMESTAMP WITH TIME ZONE '2004-10-19 10:23:54+02', 3),
- ( 'dragons', 'blarg 2', TIMESTAMP WITH TIME ZONE '2004-10-19 10:23:54+02', 4),
- ( 'amphibians', 'blarg 4', TIMESTAMP WITH TIME ZONE '2004-10-19 10:23:54+02', 5)
+ ( 'rottweiler', 'big furry monster dog', 1),
+ ( 'Henry', 'There''s like 20 of them', 2),
+ ( 'Tabby', 'What other kind is there?', 3),
+ ( 'Chupacabra', 'Okay this one is probably real', 4),
+ ( 'Sun', 'best star', 5)
 ;
+
+COMMIT;

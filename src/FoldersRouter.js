@@ -1,100 +1,74 @@
-const express = require('express');
-const { v4: uuid } = require('uuid');
-const logger = require('./logger');
-const xss = require('xss');
-const FoldersRouter = express.Router();
-const dataParser = express.json();
-const FoldersService = require('./FoldersService');
+const FoldersService = require("./FoldersService");
+const express = require("express");
+const xss = require("xss");
+const foldersRouter = express.Router();
+const jsonParser = express.json();
 
-const sanitize = folders => ({
-  id: folders.id,
-  title: xss(folders.title)
+const serialize = (folder) => ({
+  id: folder.id,
+  folder_name: xss(folder.folder_name),
 });
-
-FoldersRouter
-  .route('/')
+foldersRouter
+  .route("/")
   .get((req, res, next) => {
-    FoldersService.getAllFolders(req.app.get('db'))
-      .then(folders => res.json(folders.map(folder => sanitize(folder))));
-  })
-  .post(dataParser, (req, res, next) => {
-    // console.log('post route is here');
-    const { title } = req.body;
-    // const id = uuid();
-    const newFolder = {
-      title
-    };
-
-    if (!title) {
-      logger.error('Failed post : User did not supply folder title');
-      return res.status(400).json({ error: 'Folder Title is required' });
-    }
-    FoldersService.addFolder(req.app.get('db'), newFolder)
-      .then(folder => res.status(201).json(sanitize(folder)))
-      .catch(error => next(error));
-  });
-
-// logger.info(`Successful post : Folder ${title} was added with id: ${id}`);
-
-//get by ID
-FoldersRouter
-  .route('/:id')
-  .all((req, res, next) => {
-    const { id } = req.params;
-    FoldersService.getFolderById(req.app.get('db'), id)
-      .then(folder => {
-        if (!folder) {
-          logger.error(`Failed get folder with id: ${id}`);
-          return res.status(404).json({
-            error: { message: 'Folder doesn\'t exist' }
-          });
-        }
-        logger.info(
-          `Successful get : folder ${folder.title} was retrieved with id: ${folder.id}`
-        );
-        res.folder = folder;
-        next();
+    const db = req.app.get("db");
+    FoldersService.getAllFolders(db)
+      .then((folders) => {
+        return res.json(folders.map((folder) => serialize(folder)));
       })
       .catch(next);
   })
-  .get((req, res, next) => {
-    res.json(sanitize(res.folder));
-  })
-  .delete((req, res, next) => {
-    const { id } = req.params;
+  .post(jsonParser, (req, res, next) => {
+    const { folder_name } = req.body;
+    const newFolder = { folder_name };
 
-    if (!id) {
-      logger.error(`Failed to delete folder with id: ${id}`);
-      return res.status(404).json({ error: { message: 'Folder does not exist' } });
-    }
-    FoldersService.deleteFolder(req.app.get('db'), id)
-      .then(folder => res.status(204).json(sanitize(folder)).end())
-      .catch(error => next(error));
-  })
-
-  .patch(dataParser, (req, res, next) => {
-    const { title } = req.body;
-    const { id } = req.params;
-    const folderToUpdate = { title };
-
-    // console.log('PATCH TITLE:', title);
-
-
-    if (!title) {
-      return res.status(400).json({
-        error: { message: 'Request body must contain \'title\'' }
-      });
-    }
-    if (!id) {
-      return res.status(400).json({
-        error: { message: 'Request body must contain \'id\'' }
-      });
+    if (!folder_name) {
+      return res
+        .status(400)
+        .json({ error: { message: "Missing Folder name" } });
     }
 
-    FoldersService.updateFolder(req.app.get('db'), id, folderToUpdate)
-      .then(folderToUpdate => res.status(204).json(sanitize(folderToUpdate)).end())
-      // .then(console.log('FOLDER TO UPDATE:', folderToUpdate))
-      .catch(error => next(error));
+    FoldersService.addFolder(req.app.get("db"), newFolder)
+      .then((folder) => {
+        res.status(201).json(serialize(folder));
+      })
+      .catch((err) => next(err));
   });
 
-module.exports = FoldersRouter;
+foldersRouter
+  .route("/:id")
+  .get((req, res, next) => {
+    const { id } = req.params;
+    const db = req.app.get("db");
+
+    FoldersService.getFolderById(db, id)
+      .then((folder) => {
+        return res.json(serialize(folder));
+      })
+      .catch(next);
+  })
+  .delete((req, res, next) => {
+    FoldersService.deleteFolder(req.app.get("db"), req.params.id)
+      .then((rowsAffected) => {
+        return res.status(204).end();
+      })
+      .catch(next);
+  })
+  .patch(jsonParser, (req, res, next) => {
+    const { folder_name } = req.body;
+    const folderToUpdate = { folder_name };
+    for (const [key, value] of Object.entries(folderToUpdate)) {
+      if (value == null) {
+        return res
+          .status(400)
+          .json({ error: { message: `Missing ${key} in request` } });
+      }
+    }
+
+    FoldersService.updateNote(req.app.get("db"), req.params.id, folderToUpdate)
+      .then((folder) => {
+        res.status(204).json(serialize(folder)).end();
+      })
+      .catch((err) => next(err));
+  });
+module.exports = foldersRouter;
